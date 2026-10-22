@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "SwissBox Download Catcher",
+  "version": "1.0",
+  "description": "Перехватывает загрузки и magnet-ссылки, отдаёт в aria2 (многопоточно, с поддержкой торрентов) вместо обычной закачки браузера.",
+  "permissions": ["downloads", "cookies", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

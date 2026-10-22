@@ -1,0 +1,4 @@
+tools/
+*.exe
+*.bak
+swissbox.ini
