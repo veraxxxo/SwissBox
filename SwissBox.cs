@@ -101,6 +101,7 @@ internal static class Glyphs
     public const string Shield = "";
     public const string Thermo = "";
     public const string Gears = "";
+    public const string Cloud = "";
 }
 
 internal static class Program
@@ -1720,6 +1721,7 @@ internal static class Catalog
         new CategoryInfo("Периферия", Glyphs.Mouse, 0xAF52DE),
         new CategoryInfo("Флешки / ISO", Glyphs.Usb, 0x32ADE6),
         new CategoryInfo("Рантаймы", Glyphs.Code, 0xA2845E),
+        new CategoryInfo("Облачные диски", Glyphs.Cloud, 0x5AC8FA),
         new CategoryInfo("Твики / Debloat", Glyphs.Sliders, 0x00C7BE),
         new CategoryInfo("Активация", Glyphs.Key, 0x636366),
     };
@@ -1781,6 +1783,12 @@ internal static class Catalog
         { "BleachBit", GH + "bleachbit/bleachbit/master/windows/bleachbit.ico" },
         { "UniGetUI", GH + "marticliment/UniGetUI/main/src/SharedAssets/icon.ico" },
         { "WuMgr", GH + "DavidXanatos/wumgr/master/wumgr/wu.ico" },
+        { "Яндекс.Диск", "https://disk.yandex.ru/favicon.ico" },
+        { "Google Диск", "https://ssl.gstatic.com/images/branding/product/2x/drive_2020q4_48dp.png" },
+        { "Dropbox", "https://www.dropbox.com/static/images/favicon.ico" },
+        { "MEGAsync", GH + "meganz/MEGAsync/master/installer/app_ico.ico" },
+        { "pCloud Drive", "https://rawcdn.githack.com/SebastianK90/chocolateyautomaticpackages/31d0b9851a02b653471474a4aef34e0b9a90e4c1/icons/pcloud.png" },
+        { "Disk-O:", "https://disk-o.cloud/favicon.ico" },
         { "System Informer", GH + "winsiderss/systeminformer/master/SystemInformer/SystemInformer.ico" },
         { "ShareX", GH + "ShareX/ShareX/develop/ShareX/ShareX_Icon.ico" },
         { "Ditto", GH + "sabrogden/Ditto/master/DittoSetup/appx/ditto_150.png" },
@@ -2223,6 +2231,37 @@ internal static class Catalog
                 Desc = "Аналог Windows Update MiniTool: выбираешь, какие обновления ставить, скрываешь ненужные, можно вообще взять Windows Update под ручной контроль. Portable.",
                 Action = "portable", FolderId = "wumgr", LaunchHint = "WuMgr",
                 GithubRepo = "DavidXanatos/wumgr", AssetMatch = "WuMgr", IsZip = true
+            },
+            new ToolEntry {
+                Name = "Яндекс.Диск", Category = "Облачные диски",
+                Desc = "Официальный клиент Яндекс.Диска: папка на компьютере синхронизируется с облаком.",
+                Action = "winget", Payload = "Yandex.Disk", LaunchHint = "YandexDisk3"
+            },
+            new ToolEntry {
+                Name = "Google Диск", Category = "Облачные диски",
+                Desc = "Официальный клиент Google Drive: файлы и фото синхронизируются с аккаунтом Google.",
+                Action = "winget", Payload = "Google.GoogleDrive", LaunchHint = "GoogleDriveFS"
+            },
+            new ToolEntry {
+                Name = "Dropbox", Category = "Облачные диски",
+                Desc = "Официальный клиент Dropbox — классика облачной синхронизации файлов.",
+                Action = "winget", Payload = "Dropbox.Dropbox", LaunchHint = "Dropbox"
+            },
+            new ToolEntry {
+                Name = "MEGAsync", Category = "Облачные диски",
+                Desc = "Клиент MEGA: 20 ГБ бесплатно и сквозное шифрование файлов.",
+                Action = "winget", Payload = "Mega.MEGASync", LaunchHint = "MEGAsync"
+            },
+            new ToolEntry {
+                Name = "pCloud Drive", Category = "Облачные диски",
+                Desc = "Облако монтируется как отдельный диск в проводнике — файлы открываются без полной загрузки.",
+                Action = "winget", Payload = "pCloudAG.pCloudDrive", LaunchHint = "pCloud Drive"
+            },
+            new ToolEntry {
+                Name = "Disk-O:", Category = "Облачные диски",
+                Desc = "Подключает Google Drive, Яндекс.Диск, Dropbox, OneDrive, MEGA и ещё десяток облаков в одно окно — удобно, если у тебя их несколько сразу.",
+                Action = "portable", FolderId = "disko", LaunchHint = "Disk-O",
+                PortableUrl = "https://disko.cloud.mail.ru/download/Disk-O_setup.exe", IsZip = false
             },
             new ToolEntry {
                 Name = "System Informer", Category = "Система",
