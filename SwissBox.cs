@@ -22,6 +22,12 @@ using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
+internal static class AppInfo
+{
+    public const string Version = "1.0.0";
+    public const string GithubRepo = "veraxxxo/SwissBox";
+}
+
 internal class ToolEntry
 {
     public string Name;
@@ -1574,7 +1580,7 @@ internal class AboutHero : PaintedControl
         g.DrawImage(_icon, new Rectangle((Width - size) / 2, 8, size, size));
         TextRenderer.DrawText(g, "SwissBox", Theme.HeroFont, new Rectangle(0, 146, Width, 38), Theme.TextPrimary,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.SingleLine);
-        TextRenderer.DrawText(g, "Версия 2.0", Theme.CaptionFont, new Rectangle(0, 184, Width, 18), Theme.TextTertiary,
+        TextRenderer.DrawText(g, "Версия " + AppInfo.Version, Theme.CaptionFont, new Rectangle(0, 184, Width, 18), Theme.TextTertiary,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.SingleLine);
         int tw = Math.Min(Width - 40, 470);
         TextRenderer.DrawText(g, "Все полезные открытые утилиты в одном окне. Одна кнопка — программа скачана, обновлена и открыта.",
@@ -1747,6 +1753,7 @@ internal static class Catalog
         { "Драйверы NVIDIA", "https://cdn.jsdelivr.net/gh/Zoullx/chocolatey-packages/nvidia-app/nvidia-app.png" },
         { "Драйверы AMD Radeon", "https://rawcdn.githack.com/dmariogatto/choco/572836ba4ad4b37a05576e52ac17dcb0bce18082/amd-ryzen-chipset/amd.png" },
         { "Microsoft Activation Scripts", "https://github.com/massgravel.png?size=256" },
+        { "Simple Office Installer", "https://github.com/MaximeriX.png?size=256" },
         { "Strata", "https://github.com/Niko1221.png?size=256" },
         { "Hermes Agent", "https://github.com/NousResearch.png?size=256" },
         { "MiniMax Code", "https://github.com/MiniMax-AI.png?size=256" },
@@ -1773,6 +1780,7 @@ internal static class Catalog
         { "Bulk Crap Uninstaller", GH + "Klocman/Bulk-Crap-Uninstaller/master/source/BulkCrapUninstaller/Resources/logo.ico" },
         { "BleachBit", GH + "bleachbit/bleachbit/master/windows/bleachbit.ico" },
         { "UniGetUI", GH + "marticliment/UniGetUI/main/src/SharedAssets/icon.ico" },
+        { "WuMgr", GH + "DavidXanatos/wumgr/master/wumgr/wu.ico" },
         { "System Informer", GH + "winsiderss/systeminformer/master/SystemInformer/SystemInformer.ico" },
         { "ShareX", GH + "ShareX/ShareX/develop/ShareX/ShareX_Icon.ico" },
         { "Ditto", GH + "sabrogden/Ditto/master/DittoSetup/appx/ditto_150.png" },
@@ -2211,6 +2219,12 @@ internal static class Catalog
                 Action = "winget", Payload = "Devolutions.UniGetUI", LaunchHint = "UniGetUI"
             },
             new ToolEntry {
+                Name = "WuMgr", Category = "Твики / Debloat",
+                Desc = "Аналог Windows Update MiniTool: выбираешь, какие обновления ставить, скрываешь ненужные, можно вообще взять Windows Update под ручной контроль. Portable.",
+                Action = "portable", FolderId = "wumgr", LaunchHint = "WuMgr",
+                GithubRepo = "DavidXanatos/wumgr", AssetMatch = "WuMgr", IsZip = true
+            },
+            new ToolEntry {
                 Name = "System Informer", Category = "Система",
                 Desc = "Бывший Process Hacker: диспетчер задач на стероидах — процессы, службы, сеть, диски. Portable.",
                 Action = "portable", FolderId = "systeminformer", LaunchHint = "SystemInformer",
@@ -2354,6 +2368,13 @@ internal class MainForm : Form
     private bool _suppressSearch;
     private bool? _wingetAvailable;
     private InfoRow _wingetRow;
+
+    private InfoRow _updateRow;
+    private PillButton _updateButton;
+    private int _aboutNavIndex = -1;
+    private bool _selfUpdateAvailable;
+    private string _selfUpdateUrl;
+    private string _selfUpdateVersion;
 
     private readonly Timer _novaWatchdogTimer = new Timer { Interval = 20000 };
     private bool _novaWatchdogOn;
@@ -2538,6 +2559,7 @@ internal class MainForm : Form
         base.OnShown(e);
         LoadBrandIcons();
         CheckAllStatuses(false);
+        CheckSelfUpdate(false);
         System.Threading.ThreadPool.QueueUserWorkItem(delegate
         {
             bool ok = WingetAvailable();
@@ -2619,6 +2641,7 @@ internal class MainForm : Form
             y += 30;
         }
 
+        _aboutNavIndex = _navItems.Count;
         AddNavItem("О программе", Glyphs.Info, Color.FromArgb(142, 142, 147), 0, y + 12);
         AddPage(BuildAboutPage(), null);
     }
@@ -2740,6 +2763,17 @@ internal class MainForm : Form
         page.Controls.Add(new AboutHero());
 
         var group = new GroupPanel();
+
+        _updateRow = new InfoRow("Обновления SwissBox", "Проверяю...");
+        _updateButton = new PillButton { Text = "Проверить" };
+        _updateButton.Click += (s, e) =>
+        {
+            if (_selfUpdateAvailable) DoSelfUpdate();
+            else CheckSelfUpdate(true);
+        };
+        _updateRow.SetAccessory(_updateButton);
+        group.AddRow(_updateRow);
+
         var where = new InfoRow("Где лежат программы", ToolsRoot);
         var open = new PillButton { Text = "Показать" };
         open.Click += (s, e) =>
@@ -3034,6 +3068,7 @@ internal class MainForm : Form
                 foreach (var kv in _status)
                     if (kv.Key.Category == cat && kv.Value.Update) attention = true;
             }
+            else if (i == _aboutNavIndex) attention = _selfUpdateAvailable;
             if (_navItems[i].Attention != attention)
             {
                 _navItems[i].Attention = attention;
@@ -3709,6 +3744,148 @@ internal class MainForm : Form
             return url;
         }
         return null;
+    }
+
+    // ---------------------------------------------------------------- самообновление SwissBox
+
+    private void CheckSelfUpdate(bool manual)
+    {
+        if (manual)
+        {
+            _updateButton.Busy = true;
+            _updateButton.Enabled = false;
+            _updateRow.Subtitle = "Проверяю...";
+        }
+        System.Threading.ThreadPool.QueueUserWorkItem(delegate
+        {
+            string version = null, url = null, error = null;
+            try
+            {
+                string json = GetReleaseJson("https://api.github.com/repos/" + AppInfo.GithubRepo + "/releases/latest");
+                var tm = Regex.Match(json, "\"tag_name\"\\s*:\\s*\"v?(?<v>[^\"]+)\"");
+                if (tm.Success) version = tm.Groups["v"].Value;
+                foreach (Match m in Regex.Matches(json, "\"browser_download_url\"\\s*:\\s*\"(?<url>[^\"]+)\""))
+                {
+                    string u = m.Groups["url"].Value;
+                    if (u.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) { url = u; break; }
+                }
+            }
+            catch (Exception ex) { error = FriendlyError(ex); }
+
+            Ui(() =>
+            {
+                _updateButton.Busy = false;
+                _updateButton.Enabled = true;
+                if (error != null)
+                {
+                    _updateRow.Subtitle = "Не удалось проверить: " + error;
+                    _updateButton.Text = "Проверить";
+                    _updateButton.Filled = false;
+                    return;
+                }
+                if (version == null || url == null)
+                {
+                    _updateRow.Subtitle = "Не удалось разобрать ответ GitHub.";
+                    _updateButton.Text = "Проверить";
+                    _updateButton.Filled = false;
+                    return;
+                }
+                if (IsNewerVersion(version, AppInfo.Version))
+                {
+                    _selfUpdateAvailable = true;
+                    _selfUpdateUrl = url;
+                    _selfUpdateVersion = version;
+                    _updateRow.Subtitle = "Доступна версия " + version + " (у тебя " + AppInfo.Version + ").";
+                    _updateButton.Text = "Обновить";
+                    _updateButton.Filled = true;
+                }
+                else
+                {
+                    _selfUpdateAvailable = false;
+                    _updateRow.Subtitle = "Установлена последняя версия (" + AppInfo.Version + ").";
+                    _updateButton.Text = "Проверить ещё раз";
+                    _updateButton.Filled = false;
+                }
+                UpdateAttentionDots();
+            });
+        });
+    }
+
+    private static bool IsNewerVersion(string remote, string local)
+    {
+        try
+        {
+            var r = Array.ConvertAll(remote.Split('.'), s => int.Parse(Regex.Match(s, @"\d+").Value));
+            var l = Array.ConvertAll(local.Split('.'), s => int.Parse(Regex.Match(s, @"\d+").Value));
+            for (int i = 0; i < Math.Max(r.Length, l.Length); i++)
+            {
+                int rv = i < r.Length ? r[i] : 0;
+                int lv = i < l.Length ? l[i] : 0;
+                if (rv != lv) return rv > lv;
+            }
+            return false;
+        }
+        catch { return false; }
+    }
+
+    private void DoSelfUpdate()
+    {
+        if (string.IsNullOrEmpty(_selfUpdateUrl)) return;
+        _updateButton.Busy = true;
+        _updateButton.Enabled = false;
+        _updateRow.Subtitle = "Скачиваю версию " + _selfUpdateVersion + "...";
+        System.Threading.ThreadPool.QueueUserWorkItem(delegate
+        {
+            try
+            {
+                string currentExe = Process.GetCurrentProcess().MainModule.FileName;
+                string tempExe = Path.Combine(Path.GetTempPath(), "SwissBox_update_" + Guid.NewGuid().ToString("N") + ".exe");
+
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+                using (var wc = new WebClient())
+                {
+                    wc.Headers.Add("User-Agent", "SwissBox");
+                    wc.DownloadFile(_selfUpdateUrl, tempExe);
+                }
+
+                int pid = Process.GetCurrentProcess().Id;
+                string bat = Path.Combine(Path.GetTempPath(), "SwissBox_update_" + Guid.NewGuid().ToString("N") + ".bat");
+                string batScript =
+                    "@echo off\r\n" +
+                    ":loop\r\n" +
+                    "tasklist /fi \"PID eq " + pid + "\" | find \"" + pid + "\" >nul\r\n" +
+                    "if not errorlevel 1 (\r\n" +
+                    "  timeout /t 1 /nobreak >nul\r\n" +
+                    "  goto loop\r\n" +
+                    ")\r\n" +
+                    "move /y \"" + tempExe + "\" \"" + currentExe + "\" >nul\r\n" +
+                    "start \"\" \"" + currentExe + "\"\r\n" +
+                    "del \"%~f0\"\r\n";
+                File.WriteAllText(bat, batScript);
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = "/c \"" + bat + "\"",
+                    UseShellExecute = true,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    CreateNoWindow = true
+                });
+
+                LogThreadSafe("SwissBox: обновляюсь до версии " + _selfUpdateVersion + ", перезапуск...");
+                Ui(() => Application.Exit());
+            }
+            catch (Exception ex)
+            {
+                string msg = FriendlyError(ex);
+                Ui(() =>
+                {
+                    _updateButton.Busy = false;
+                    _updateButton.Enabled = true;
+                    _updateRow.Subtitle = "Не удалось обновить: " + msg;
+                });
+            }
+        });
     }
 
     private static string FriendlyError(Exception ex)
